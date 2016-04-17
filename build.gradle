@@ -1,0 +1,24 @@
+apply plugin: 'groovy'
+apply plugin: 'maven'
+
+archivesBaseName = 'offline-dependencies-plugin'
+group = 'io.pry.gradle'
+version = '1.0-SNAPSHOT'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile gradleApi()
+  compile localGroovy()
+  compile 'org.apache.maven:maven-model:3.3.9'
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: "file:///tmp/m2repo")
+        }
+    }
+}
