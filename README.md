@@ -1,0 +1,1 @@
+# gradle-offline-dependencies-plugin
