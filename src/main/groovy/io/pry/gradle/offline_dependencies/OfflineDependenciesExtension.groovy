@@ -9,7 +9,7 @@ class OfflineDependenciesExtension {
 
   // config properties
   def configurations = [] as Set<String>
-  def buildScriptConfigurations = [] as Set<String>
+  def buildscriptConfigurations = [] as Set<String>
 
   def includeSources = true
   def includeJavadocs = true
@@ -33,8 +33,8 @@ class OfflineDependenciesExtension {
     this.configurations.addAll(configurationNames)
   }
 
-  public void buildScriptConfigurations(String... configurationNames) {
-    this.buildScriptConfigurations.addAll(configurationNames)
+  public void buildscriptConfigurations(String... configurationNames) {
+    this.buildscriptConfigurations.addAll(configurationNames)
   }
 
   // used by task depending on the repository definitions

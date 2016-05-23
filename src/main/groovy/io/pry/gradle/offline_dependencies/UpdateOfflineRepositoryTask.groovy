@@ -24,11 +24,9 @@ import static io.pry.gradle.offline_dependencies.Utils.addToMultimap
 
 class UpdateOfflineRepositoryTask extends DefaultTask {
 
-  //public Set<Configuration> configurations = []
-
   @Input GString root
   @Input Set<String> configurationNames
-  @Input Set<String> buildScriptConfigurationNames
+  @Input Set<String> buildscriptConfigurationNames
   @Input boolean includeSources
   @Input boolean includeJavadocs
   @Input boolean includePoms
@@ -87,8 +85,8 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
     }
 
     if(this.getIncludeBuildscriptDependencies()) {
-      if(this.getBuildScriptConfigurationNames()) {
-        def configurationNames = this.getBuildScriptConfigurationNames()
+      if(this.getBuildscriptConfigurationNames()) {
+        def configurationNames = this.getBuildscriptConfigurationNames()
 
         logger.trace("Trying to resolve the following buildscript configurations: '${configurationNames.join(",")}'")
 

@@ -30,7 +30,7 @@ class OfflineDependenciesPlugin implements Plugin<Project> {
     project.task('updateOfflineRepository', type: UpdateOfflineRepositoryTask) {
       conventionMapping.root = { "${project.offlineRepositoryRoot}" }
       conventionMapping.configurationNames = { extension.configurations }
-      conventionMapping.buildScriptConfigurationNames = { extension.buildScriptConfigurations }
+      conventionMapping.buildscriptConfigurationNames = { extension.buildscriptConfigurations }
       conventionMapping.includeSources = { extension.includeSources }
       conventionMapping.includeJavadocs = { extension.includeJavadocs }
       conventionMapping.includePoms = { extension.includePoms }
