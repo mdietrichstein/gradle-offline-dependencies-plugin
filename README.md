@@ -74,7 +74,7 @@ You can get around that limitation by setting the property yourself, e.g. by sup
 
 `./gradlew updateOfflineRepository -PofflineRepositoryRoot=./offline-repository` 
 
-Alternatively yout can create en entry for this property in your project's `gradle.properties` file.
+Alternatively you can create an entry for this property in your project's `gradle.properties` file.
 
 The second issue is that gradle won't be able to resolve your buildscript dependencies when running the `updateOfflineRepository` task for the first time. You can solve this issue by specifying the offline repository alongside the remote repositories, e.g.
 
