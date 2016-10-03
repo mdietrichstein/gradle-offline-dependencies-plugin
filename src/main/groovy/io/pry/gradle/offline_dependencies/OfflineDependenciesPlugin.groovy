@@ -14,7 +14,7 @@ class OfflineDependenciesPlugin implements Plugin<Project> {
   @Override
   void apply(Project project) {
 
-    if(!project.hasProperty("offlineRepositoryRoot")) {
+    if (!project.hasProperty("offlineRepositoryRoot")) {
       project.ext.offlineRepositoryRoot = "${project.projectDir}/offline-repository"
     }
 

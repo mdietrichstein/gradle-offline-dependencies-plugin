@@ -1,8 +1,16 @@
 package io.pry.gradle.offline_dependencies
 
+import io.pry.gradle.offline_dependencies.maven.PomDependencyModelResolver
+import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.Model
+import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.building.*
+import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.interpolation.StringSearchModelInterpolator
+import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.path.DefaultPathTranslator
+import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.path.DefaultUrlNormalizer
+import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.validation.DefaultModelValidator
 import org.gradle.api.DefaultTask
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.ResolvedArtifact
+import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.artifacts.UnknownConfigurationException
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
@@ -24,14 +32,24 @@ import static io.pry.gradle.offline_dependencies.Utils.addToMultimap
 
 class UpdateOfflineRepositoryTask extends DefaultTask {
 
-  @Input GString root
-  @Input Set<String> configurationNames
-  @Input Set<String> buildscriptConfigurationNames
-  @Input boolean includeSources
-  @Input boolean includeJavadocs
-  @Input boolean includePoms
-  @Input boolean includeIvyXmls
-  @Input boolean includeBuildscriptDependencies
+  def EMPTY_DEPENDENCIES_ARRAY = new Dependency[0]
+
+  @Input
+  GString root
+  @Input
+  Set<String> configurationNames
+  @Input
+  Set<String> buildscriptConfigurationNames
+  @Input
+  boolean includeSources
+  @Input
+  boolean includeJavadocs
+  @Input
+  boolean includePoms
+  @Input
+  boolean includeIvyXmls
+  @Input
+  boolean includeBuildscriptDependencies
 
   @TaskAction
   void run() {
@@ -40,7 +58,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
       repositoryFiles.each { id, files ->
         def directory = moduleDirectory(id)
         GFileUtils.mkdirs(directory)
-        files.each { File file ->  GFileUtils.copyFile(file, new File(directory, file.name)) }
+        files.each { File file -> GFileUtils.copyFile(file, new File(directory, file.name)) }
       }
     }
   }
@@ -56,7 +74,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
       def outputFiles = [] as Set<File>
 
       repositoryFiles.each { id, files ->
-        files.each { File file ->  outputFiles.add(new File(moduleDirectory(id), file.name)) }
+        files.each { File file -> outputFiles.add(new File(moduleDirectory(id), file.name)) }
       }
 
       return outputFiles
@@ -67,7 +85,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
   private Set<Configuration> getConfigurations() {
     Set<Configuration> configurations = []
 
-    if(this.getConfigurationNames()) {
+    if (this.getConfigurationNames()) {
       def configurationNames = this.getConfigurationNames()
 
       logger.trace("Trying to resolve the following project configurations: '${configurationNames.join(",")}'")
@@ -75,7 +93,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
       configurationNames.each { name ->
         try {
           configurations.add(project.configurations.getByName(name))
-        } catch(UnknownConfigurationException e) {
+        } catch (UnknownConfigurationException e) {
           logger.warn("Unable to resolve project configuration with name '${name}'")
         }
       }
@@ -84,8 +102,8 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
       configurations.addAll(project.configurations)
     }
 
-    if(this.getIncludeBuildscriptDependencies()) {
-      if(this.getBuildscriptConfigurationNames()) {
+    if (this.getIncludeBuildscriptDependencies()) {
+      if (this.getBuildscriptConfigurationNames()) {
         def configurationNames = this.getBuildscriptConfigurationNames()
 
         logger.trace("Trying to resolve the following buildscript configurations: '${configurationNames.join(",")}'")
@@ -93,7 +111,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
         configurationNames.each { name ->
           try {
             configurations.add(project.buildscript.configurations.getByName(name))
-          } catch(UnknownConfigurationException e) {
+          } catch (UnknownConfigurationException e) {
             logger.warn("Unable to resolve buildscript configuration with name '${name}'")
           }
         }
@@ -105,7 +123,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
       logger.trace("Skipping buildscript configurations")
     }
 
-    if(!configurations) {
+    if (!configurations) {
       logger.warn('No configurations found. There are no dependencies to resolve.')
     }
 
@@ -114,39 +132,44 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
 
   // collect everything
   private Map<ModuleComponentIdentifier, Set<File>> collectRepositoryFiles(Set<Configuration> configurations) {
-    Set<ResolvedArtifact> artifacts = []
-
-    // collect artifacts
-    for (configuration in configurations) {
-      artifacts.addAll(configuration.resolvedConfiguration.resolvedArtifacts)
-    }
-
     Set<ModuleComponentIdentifier> componentIds = []
     Map<ModuleComponentIdentifier, Set<File>> repositoryFiles = [:]
 
-    for (artifact in artifacts) {
-      def componentId =
-          new DefaultModuleComponentIdentifier(
-              artifact.moduleVersion.id.group,
-              artifact.moduleVersion.id.name,
-              artifact.moduleVersion.id.version
-          )
+    for (configuration in configurations) {
+      for (dependency in configuration.allDependencies) {
+        if (dependency instanceof ExternalModuleDependency) {
 
-      componentIds.add(componentId)
+          // create a detach configuration for ech dependency to get all declared versions of a dependency
+          // resolution would fetch only the newest otherwise
+          // see:
+          // * http://stackoverflow.com/questions/29374885/multiple-version-of-dependencies-in-gradle
+          // * https://discuss.gradle.org/t/how-to-get-multiple-versions-of-the-same-library/7400
+          def cfg = project.configurations.detachedConfiguration([dependency].toArray(EMPTY_DEPENDENCIES_ARRAY))
 
-      logger.trace("Adding artifact for component'{}' (location '{}')", componentId, artifact.file)
-      addToMultimap(repositoryFiles, componentId, artifact.file)
+          cfg.resolvedConfiguration.resolvedArtifacts.forEach({ artifact ->
+            def componentId =
+                new DefaultModuleComponentIdentifier(
+                    artifact.moduleVersion.id.group,
+                    artifact.moduleVersion.id.name,
+                    artifact.moduleVersion.id.version
+                )
+
+            componentIds.add(componentId)
+            logger.trace("Adding artifact for component'{}' (location '{}')", componentId, artifact.file)
+            addToMultimap(repositoryFiles, componentId, artifact.file)
+          });
+        }
+      }
     }
-
     // collect sources and javadocs
-    if(this.getIncludeSources() || this.getIncludeJavadocs()) {
+    if (this.getIncludeSources() || this.getIncludeJavadocs()) {
       def jvmArtifacts = project.dependencies.createArtifactResolutionQuery()
           .forComponents(componentIds)
           .withArtifacts(JvmLibrary, SourcesArtifact, JavadocArtifact)
           .execute()
 
       for (component in jvmArtifacts.resolvedComponents) {
-        if(this.getIncludeSources()) {
+        if (this.getIncludeSources()) {
           def sources = component.getArtifacts(SourcesArtifact)
           if (!sources?.empty) {
             sources*.file.each { File source ->
@@ -156,7 +179,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
           }
         }
 
-        if(this.getIncludeJavadocs()) {
+        if (this.getIncludeJavadocs()) {
           def javadocs = component.getArtifacts(JavadocArtifact)
           if (!javadocs?.empty) {
             javadocs*.file.each { File javadoc ->
@@ -169,12 +192,12 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
     }
 
     // collect maven poms (for immediate component ids and parents)
-    if(this.getIncludePoms()) {
-      collectPoms(componentIds, [] as Set, repositoryFiles)
+    if (this.getIncludePoms()) {
+      collectPoms(componentIds, repositoryFiles)
     }
 
     // collect ivy xml files
-    if(this.getIncludeIvyXmls()) {
+    if (this.getIncludeIvyXmls()) {
       collectIvyXmls(componentIds, repositoryFiles)
     }
 
@@ -182,7 +205,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
   }
 
   // adds pom artifacts and their parents for the givens component ids
-  private void collectPoms(Set<ComponentIdentifier> componentIds, Set<ComponentIdentifier> resolvedIds, Map<ComponentIdentifier, Set<File>> repositoryFiles) {
+  private void collectPoms(Set<ComponentIdentifier> componentIds, Map<ComponentIdentifier, Set<File>> repositoryFiles) {
     logger.trace("Collecting pom files")
 
     def mavenArtifacts = project.dependencies.createArtifactResolutionQuery()
@@ -190,54 +213,71 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
         .withArtifacts(MavenModule, MavenPomArtifact)
         .execute()
 
-    def parentIds = [] as Set<ComponentIdentifier>
+    def pomModelResolver = new PomDependencyModelResolver(project)
 
     for (component in mavenArtifacts.resolvedComponents) {
-      resolvedIds.add(component.id)
-
       def poms = component.getArtifacts(MavenPomArtifact)
       if (poms?.empty) {
         continue
       }
 
       def pomFile = poms.first().file as File
+      resolvePom(pomModelResolver, pomFile)
+
       logger.trace("Adding pom for component'{}' (location '{}')", component.id, pomFile)
       addToMultimap(repositoryFiles, component.id, pomFile)
-
-      def parentId = findParentId(pomFile)
-      
-      if (parentId == null) {
-        continue
-      }
-
-      if(!resolvedIds.contains(parentId)) {
-        parentIds.add(parentId)
-      }
     }
 
-    def newIds = parentIds - resolvedIds
-    if(!newIds.empty) {
-      collectPoms(newIds, resolvedIds, repositoryFiles)
+    pomModelResolver.componentCache().each { componentId, pomFile ->
+      addToMultimap(repositoryFiles, componentId, pomFile)
     }
   }
 
-  private DefaultModuleComponentIdentifier findParentId(File pomFile) {
-    def pom = new XmlSlurper().parse(pomFile)
-    def parent = pom.parent
+  private Model resolvePom(PomDependencyModelResolver pomModelResolver, File pomFile) {
+    def modelBuildingRequest = new DefaultModelBuildingRequest();
+    modelBuildingRequest.setSystemProperties(System.getProperties())
+    modelBuildingRequest.setModelSource(new FileModelSource(pomFile))
+    modelBuildingRequest.setModelResolver(pomModelResolver)
 
-    if(parent) {
-      return new DefaultModuleComponentIdentifier(
-          parent.groupId as String,
-          parent.artifactId as String,
-          parent.version as String
-      )
+    try {
+      def modelBuilder = new DefaultModelBuilderFactory().newInstance()
+
+      def modelInterpolator = new StringSearchModelInterpolator()
+      modelInterpolator.setUrlNormalizer(new DefaultUrlNormalizer())
+      modelInterpolator.setPathTranslator(new DefaultPathTranslator())
+
+      modelBuilder.setModelInterpolator(modelInterpolator)
+      modelBuilder.setModelValidator(new DefaultModelValidator())
+
+      def result = modelBuilder.build(modelBuildingRequest)
+
+      if (!result.problems.empty) {
+        result.problems.each { this.logModelProblems(it) }
+      }
+
+      return result.effectiveModel
+    } catch (ModelBuildingException e) {
+      logger.error("${e.getMessage()}: ${e.problems}")
     }
+  }
 
-    return null
+  protected void logModelProblems(ModelProblem problem) {
+    def message = "$problem.modelId: $problem.message"
+
+    switch (problem.severity) {
+      case ModelProblem.Severity.WARNING:
+        logger.info(message, problem.exception);
+        break;
+
+      case ModelProblem.Severity.ERROR:
+      case ModelProblem.Severity.FATAL:
+        logger.error(message, problem.exception);
+        break;
+    }
   }
 
   private void collectIvyXmls(Set<ComponentIdentifier> componentIds, Map<ComponentIdentifier, Set<File>> repositoryFiles) {
-    logger.trace("Collecting ivy xmls")
+    logger.trace("Collecting ivy xml files")
 
     def ivyArtifacts = project.dependencies.createArtifactResolutionQuery()
         .forComponents(componentIds)
@@ -257,10 +297,8 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
     }
   }
 
-  /*
-    Activate online repositories and collect dependencies.
-    Switch back to local repository afterwards.
-  */
+  // Activate online repositories and collect dependencies.
+  // Switch back to local repository afterwards.
   private def withRepositoryFiles(Closure<Map<ModuleComponentIdentifier, Set<File>>> callback) {
     def originalRepositories = project.repositories.collect()
 
@@ -280,7 +318,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
   }
 
   // return the offline-repository target directory for the given component (naming follows maven conventions)
-  File moduleDirectory(ModuleComponentIdentifier ci) {
+  protected File moduleDirectory(ModuleComponentIdentifier ci) {
     new File("${getRoot()}".toString(), "${ci.group.tokenize(".").join("/")}/${ci.module}/${ci.version}")
   }
 }

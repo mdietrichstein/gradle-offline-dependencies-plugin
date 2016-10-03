@@ -1,14 +1,72 @@
 apply plugin: 'groovy'
 
-archivesBaseName = 'offline-dependencies-plugin'
 group = 'io.pry.gradle'
-version = '1.0-SNAPSHOT'
+version = '0.2-SNAPSHOT'
+description = 'Store project dependencies alongside your code for reproducible offline builds'
 
 repositories {
   mavenCentral()
+  maven { url 'https://repo.gradle.org/gradle/libs-releases' }
+}
+
+ext {
+  mavenVersion = '3.3.9'
+  jarjarVersion = '1.2.1'
+
+  thirdpartyLibsDir = "$project.rootDir/libs/"
+}
+
+configurations {
+  thirdparty
+  jarjar
 }
 
 dependencies {
-  compile gradleApi()
-  compile localGroovy()
+	compile gradleApi()
+	compile localGroovy()
+
+	compile fileTree(thirdpartyLibsDir)
+
+	// thirdparty dependencies and repackaging
+	jarjar "org.gradle.jarjar:jarjar:$jarjarVersion"
+	thirdparty "org.apache.maven:maven-model-builder:$mavenVersion"
+}
+
+task repackageDependencies(type: Jar) {
+	baseName = 'offline-dependencies-plugin-thirdparty-repackaged-all'
+	version = project.version
+	destinationDir = new File(thirdpartyLibsDir)
+
+	doLast {
+		project.ant {
+			taskdef name: "jarjar", classname: "com.tonicsystems.jarjar.JarJarTask", classpath: configurations.jarjar.asPath
+			jarjar(destfile: archivePath) {
+				configurations.thirdparty.each { originalJar ->
+					zipfileset(src: originalJar)
+				}
+				rule(pattern: 'org.**', result: 'io.pry.gradle.offline_dependencies.repackaged.org.@1')
+				rule(pattern: 'com.**', result: 'io.pry.gradle.offline_dependencies.repackaged.com.@1')
+				rule(pattern: 'licenses.**', result: 'io.pry.gradle.offline_dependencies.repackaged.licenses.@1')
+			}
+		}
+	}
+}
+
+compileJava.dependsOn 'repackageDependencies'
+
+jar {
+	from(zipTree(repackageDependencies.archivePath)) {
+		include '**'
+	}
+
+	baseName = 'offline-dependencies-plugin'
+
+	manifest {
+		attributes(
+			'Created-By': "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})".toString(),
+			'Implementation-Title': project.description,
+			'Implementation-Version': project.version,
+			'Implementation-Vendor': 'Marc Dietrichstein'
+		)
+	}
 }
