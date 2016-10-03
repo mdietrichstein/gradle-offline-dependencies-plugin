@@ -2,13 +2,17 @@
 
 This plugin resolves your project dependency artifacts (jar, javadoc, pom, etc.), including transitive ones, and stores them alongside your code. This way you can always build your project without having to fetch dependencies from remote servers.
 
+## How to build
+
+Check out the code, run `./gradlew build` and fetch the resulting jar from `build/libs/offline-dependencies-plugin-0.2-SNAPSHOT.jar`.
+
 ## Usage
 
 To use the plugin, add it as a buildscript dependency:
 ```gradle
 buildscript {
   dependencies {
-    classpath files("../your/path/to/offline-dependencies-plugin-1.0-SNAPSHOT.jar")
+    classpath files("../your/path/to/offline-dependencies-plugin-0.2-SNAPSHOT.jar")
   }
 }
 ```
@@ -44,7 +48,7 @@ offlineDependencies {
 Currently the plugin only exposes a single task:
 
 ### updateOfflineRepository
-```> gradle updateOfflineRepository```
+`> ./gradlew updateOfflineRepository`
 
 Downloads dependency artifacts and stores them locally
 
@@ -56,23 +60,54 @@ The offline-dependencies Plugin defines the following properties which may be co
 * ```includeJavadocs```: Download javadocs (default is ```true```)
 * ```includePoms```:  Download pom.xml artifacts (default is ```true```)
 * ```includeIvyXmls```:  Download ivy.xml artifacts (default is ```true```)
-* ```includeBuildscriptDependencies```: Download dependencies defined in the ```buildscript``` section (default is ```true```)
+* ```includeBuildscriptDependencies```: Download dependencies defined in the ```buildscript``` section (default is ```true```). Buildscript dependencies need special handling. See __Handling Buildscript Dependencies__ below for details
 * ```configurations```: Project confgurations for which dependency artifacts should be downloaded (defaults to all project configurations)
 * ```buildScriptConfigurations```: Buildscript configurations for which dependency artifacts should be downloaded (defaults to all  buildscript configurations)
 
+## Handling Buildscript Dependencies
+
+The are two issues when it comes to buildscript dependencies. Both stem from the fact that gradle applies the  `offline-dependencies` plugin only after the  `buildscript` block has been evaluated.
+
+The first issue is that you can not use the default `offlineRepositoryRoot` property within a buildscript block, the reason being that the `offline-dependencies` plugin hasn't had a chance to set the property by itself yet.
+
+You can get around that limitation by setting the property yourself, e.g. by supplying it as a command line parameter:
+
+`./gradlew updateOfflineRepository -PofflineRepositoryRoot=./offline-repository` 
+
+Alternatively yout can create en entry for this property in your project's `gradle.properties` file.
+
+The second issue is that gradle won't be able to resolve your buildscript dependencies when running the `updateOfflineRepository` task for the first time. You can solve this issue by specifying the offline repository alongside the remote repositories, e.g.
+
+```gradle
+buildscript {
+  repositories {
+    maven {
+      url offlineRepositoryRoot
+    }
+    mavenCentral()
+    jcenter()
+  }
+
+  dependencies {
+    classpath files("../your/path/to/offline-dependencies-plugin-0.2-SNAPSHOT.jar")
+    classpath "some.other.buildscript:dependency:1.0.0"
+  }
+}
+```
+
+Just make sure that the `offlineRepositoryRoot` repository is first in the list.
 
 ## Example build.gradle
 
 ```gradle
+apply plugin: 'offline-dependencies'
 apply plugin: 'java'
 
 buildscript {
   dependencies {
-    classpath files("../your/path/to/offline-dependencies-plugin-1.0-SNAPSHOT.jar")
+    classpath files("../your/path/to/offline-dependencies-plugin-0.2-SNAPSHOT.jar")
   }
 }
-
-apply plugin: 'offline-dependencies'
 
 repositories {
   maven {
