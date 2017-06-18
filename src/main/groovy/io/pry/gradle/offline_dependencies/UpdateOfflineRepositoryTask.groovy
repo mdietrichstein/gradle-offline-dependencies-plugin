@@ -139,8 +139,9 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
       for (dependency in configuration.allDependencies) {
         if (dependency instanceof ExternalModuleDependency) {
 
-          // create a detach configuration for ech dependency to get all declared versions of a dependency
-          // resolution would fetch only the newest otherwise
+          // create a detached configuration for each dependency to get all declared versions of a dependency.
+          // resolution would fetch only the newest otherwise.
+          //
           // see:
           // * http://stackoverflow.com/questions/29374885/multiple-version-of-dependencies-in-gradle
           // * https://discuss.gradle.org/t/how-to-get-multiple-versions-of-the-same-library/7400
@@ -317,7 +318,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
     callback(files)
   }
 
-  // return the offline-repository target directory for the given component (naming follows maven conventions)
+  // Return the offline-repository target directory for the given component (naming follows maven conventions)
   protected File moduleDirectory(ModuleComponentIdentifier ci) {
     new File("${getRoot()}".toString(), "${ci.group.tokenize(".").join("/")}/${ci.module}/${ci.version}")
   }
