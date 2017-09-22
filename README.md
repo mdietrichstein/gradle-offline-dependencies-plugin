@@ -4,7 +4,7 @@ This plugin resolves your project dependency artifacts (jar, javadoc, pom, etc.)
 
 ## How to build
 
-Check out the code, run `./gradlew build` and fetch the resulting jar from `build/libs/offline-dependencies-plugin-0.2-SNAPSHOT.jar`.
+Check out the code, run `./gradlew build` and fetch the resulting jar from `build/libs/offline-dependencies-plugin-0.3-SNAPSHOT.jar`.
 
 ## Usage
 
@@ -12,7 +12,7 @@ To use the plugin, add it as a buildscript dependency:
 ```gradle
 buildscript {
   dependencies {
-    classpath files("../your/path/to/offline-dependencies-plugin-0.2-SNAPSHOT.jar")
+    classpath files("../your/path/to/offline-dependencies-plugin-0.3-SNAPSHOT.jar")
   }
 }
 ```
@@ -89,7 +89,7 @@ buildscript {
   }
 
   dependencies {
-    classpath files("../your/path/to/offline-dependencies-plugin-0.2-SNAPSHOT.jar")
+    classpath files("../your/path/to/offline-dependencies-plugin-0.3-SNAPSHOT.jar")
     classpath "some.other.buildscript:dependency:1.0.0"
   }
 }
@@ -105,7 +105,7 @@ apply plugin: 'java'
 
 buildscript {
   dependencies {
-    classpath files("../your/path/to/offline-dependencies-plugin-0.2-SNAPSHOT.jar")
+    classpath files("../your/path/to/offline-dependencies-plugin-0.3-SNAPSHOT.jar")
   }
 }
 

@@ -1,7 +1,7 @@
 apply plugin: 'groovy'
 
 group = 'io.pry.gradle'
-version = '0.2-SNAPSHOT'
+version = '0.3-SNAPSHOT'
 description = 'Store project dependencies alongside your code for reproducible offline builds'
 
 repositories {

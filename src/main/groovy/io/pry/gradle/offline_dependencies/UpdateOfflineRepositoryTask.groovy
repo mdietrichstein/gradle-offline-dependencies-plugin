@@ -63,24 +63,6 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
     }
   }
 
-  @InputFiles
-  Set<File> getInputFiles() {
-    withRepositoryFiles { it.values().collect().flatten() as Set<File> }
-  }
-
-  @OutputFiles
-  Set<File> getOutputFiles() {
-    withRepositoryFiles { repositoryFiles ->
-      def outputFiles = [] as Set<File>
-
-      repositoryFiles.each { id, files ->
-        files.each { File file -> outputFiles.add(new File(moduleDirectory(id), file.name)) }
-      }
-
-      return outputFiles
-    }
-  }
-
   // configurations
   private Set<Configuration> getConfigurations() {
     Set<Configuration> configurations = []
