@@ -1,7 +1,19 @@
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "com.gradle.publish:plugin-publish-plugin:0.9.9"
+  }
+}
+
+apply plugin: "com.gradle.plugin-publish"
 apply plugin: 'groovy'
 
-group = 'io.pry.gradle'
-version = '0.3-SNAPSHOT'
+group = 'io.pry.gradle.offline_dependencies'
+version = '0.3'
 description = 'Store project dependencies alongside your code for reproducible offline builds'
 
 repositories {
@@ -69,4 +81,18 @@ jar {
 			'Implementation-Vendor': 'Marc Dietrichstein'
 		)
 	}
+}
+
+pluginBundle {
+  website = 'https://github.com/mdietrichstein/gradle-offline-dependencies-plugin'
+  vcsUrl = 'https://github.com/mdietrichstein/gradle-offline-dependencies-plugin'
+  description = project.description
+  tags = ['offline', 'buildscript-dependency', 'buildscript-configurations', 'jar', 'pom', 'reproducible', 'offline-dependencies']
+
+  plugins {
+    greetingsPlugin {
+      id = project.group
+      displayName = 'Gradle Offline Dependencies Plugin'
+    }
+  }
 }

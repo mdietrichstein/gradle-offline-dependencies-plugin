@@ -2,25 +2,34 @@
 
 This plugin resolves your project dependency artifacts (jar, javadoc, pom, etc.), including transitive ones, and stores them alongside your code. This way you can always build your project without having to fetch dependencies from remote servers.
 
-## How to build
+## How to integrate
 
-Check out the code, run `./gradlew build` and fetch the resulting jar from `build/libs/offline-dependencies-plugin-0.3-SNAPSHOT.jar`.
+All Gradle versions:
 
-## Usage
-
-To use the plugin, add it as a buildscript dependency:
-```gradle
+```
 buildscript {
-  dependencies {
-    classpath files("../your/path/to/offline-dependencies-plugin-0.3-SNAPSHOT.jar")
+  repositories {
+    maven {
+      url 'https://plugins.gradle.org/m2/'
+    }
   }
+  dependencies {
+    classpath 'gradle.plugin.io.pry.gradle.offline_dependencies:gradle-offline-dependencies-plugin:0.3'
+  }
+}
+
+apply plugin: 'io.pry.gradle.offline_dependencies'
+```
+
+For Gradle >= 2.1:
+
+```
+plugins {
+  id 'io.pry.gradle.offline_dependencies' version '0.3'
 }
 ```
 
-Then apply it to your project:
-```gradle
-apply plugin: 'offline-dependencies'
-```
+## Usage
 
 The plugin creates a local maven repository where all dependency artifacts will be stored for offline use. To use this repository, add the following:
 ```gradle
@@ -84,13 +93,16 @@ buildscript {
     maven {
       url offlineRepositoryRoot
     }
+    maven {
+      url 'https://plugins.gradle.org/m2/'
+    }
     mavenCentral()
     jcenter()
   }
 
   dependencies {
-    classpath files("../your/path/to/offline-dependencies-plugin-0.3-SNAPSHOT.jar")
-    classpath "some.other.buildscript:dependency:1.0.0"
+    classpath 'gradle.plugin.io.pry.gradle.offline_dependencies:gradle-offline-dependencies-plugin:0.3'
+    classpath 'some.other.buildscript:dependency:1.0.0'
   }
 }
 ```
@@ -100,12 +112,17 @@ Just make sure that the `offlineRepositoryRoot` repository is first in the list.
 ## Example build.gradle
 
 ```gradle
-apply plugin: 'offline-dependencies'
+apply plugin: 'io.pry.gradle.offline_dependencies'
 apply plugin: 'java'
 
 buildscript {
+  repositories {
+    maven {
+      url 'https://plugins.gradle.org/m2/'
+    }
+  }
   dependencies {
-    classpath files("../your/path/to/offline-dependencies-plugin-0.3-SNAPSHOT.jar")
+    classpath "gradle.plugin.io.pry.gradle.offline_dependencies:gradle-offline-dependencies-plugin:0.3"
   }
 }
 
