@@ -1,3 +1,4 @@
+gradle.properties
 .gradle
 build/
 gradle-app.setting
