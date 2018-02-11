@@ -8,15 +8,11 @@ import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.path
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.path.DefaultUrlNormalizer
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.validation.DefaultModelValidator
 import org.gradle.api.DefaultTask
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.ExternalModuleDependency
-import org.gradle.api.artifacts.UnknownConfigurationException
+import org.gradle.api.artifacts.*
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.result.UnresolvedArtifactResult
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFiles
-import org.gradle.api.tasks.OutputFiles
 import org.gradle.api.tasks.TaskAction
 import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
 import org.gradle.ivy.IvyDescriptorArtifact
@@ -50,6 +46,8 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
   boolean includeIvyXmls
   @Input
   boolean includeBuildscriptDependencies
+  @Input
+  boolean continueOnFailure
 
   @TaskAction
   void run() {
@@ -129,18 +127,26 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
           // * https://discuss.gradle.org/t/how-to-get-multiple-versions-of-the-same-library/7400
           def cfg = project.configurations.detachedConfiguration([dependency].toArray(EMPTY_DEPENDENCIES_ARRAY))
 
-          cfg.resolvedConfiguration.resolvedArtifacts.forEach({ artifact ->
-            def componentId =
-                new DefaultModuleComponentIdentifier(
-                    artifact.moduleVersion.id.group,
-                    artifact.moduleVersion.id.name,
-                    artifact.moduleVersion.id.version
-                )
+          try {
+            cfg.resolvedConfiguration.resolvedArtifacts.forEach({ artifact ->
+              def componentId =
+                  new DefaultModuleComponentIdentifier(
+                      artifact.moduleVersion.id.group,
+                      artifact.moduleVersion.id.name,
+                      artifact.moduleVersion.id.version
+                  )
 
-            componentIds.add(componentId)
-            logger.trace("Adding artifact for component'{}' (location '{}')", componentId, artifact.file)
-            addToMultimap(repositoryFiles, componentId, artifact.file)
-          });
+              componentIds.add(componentId)
+              logger.trace("Adding artifact for component'{}' (location '{}')", componentId, artifact.file)
+              addToMultimap(repositoryFiles, componentId, artifact.file)
+            })
+          } catch (ResolveException e) {
+            logger.error("Could not resolve '{}:{}:{}'", dependency.group, dependency.name, dependency.version)
+            logger.trace("Could not resolve '{}:{}:{}'", dependency.group, dependency.name, dependency.version, e)
+            if (!this.getContinueOnFailure()) {
+              throw e
+            }
+          }
         }
       }
     }
@@ -202,6 +208,17 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
       def poms = component.getArtifacts(MavenPomArtifact)
       if (poms?.empty) {
         continue
+      }
+
+      def pom = poms.first()
+      if (pom instanceof UnresolvedArtifactResult) {
+        logger.error("Could not find pom for component '{}'", component.id)
+        logger.trace("Could not find pom for component '{}'", component.id, pom.getFailure())
+        if (this.getContinueOnFailure()) {
+          continue
+        } else {
+          throw new RuntimeException(pom.getFailure())
+        }
       }
 
       def pomFile = poms.first().file as File
