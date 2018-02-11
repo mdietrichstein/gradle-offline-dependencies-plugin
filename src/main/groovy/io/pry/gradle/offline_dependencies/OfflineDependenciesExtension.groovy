@@ -16,6 +16,7 @@ class OfflineDependenciesExtension {
   def includePoms = true
   def includeIvyXmls = true
   def includeBuildscriptDependencies = true
+  def suppressModelWarnings = false
 
   // init
   OfflineDependenciesExtension(RepositoryHandler repositoryHandler) {

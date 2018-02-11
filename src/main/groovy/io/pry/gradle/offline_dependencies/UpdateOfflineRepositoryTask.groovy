@@ -15,8 +15,6 @@ import org.gradle.api.artifacts.UnknownConfigurationException
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFiles
-import org.gradle.api.tasks.OutputFiles
 import org.gradle.api.tasks.TaskAction
 import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
 import org.gradle.ivy.IvyDescriptorArtifact
@@ -50,6 +48,8 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
   boolean includeIvyXmls
   @Input
   boolean includeBuildscriptDependencies
+  @Input
+  boolean suppressModelWarnings
 
   @TaskAction
   void run() {
@@ -234,13 +234,17 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
 
       def result = modelBuilder.build(modelBuildingRequest)
 
-      if (!result.problems.empty) {
+      if (!result.problems.empty && !this.getSuppressModelWarnings()) {
         result.problems.each { this.logModelProblems(it) }
       }
 
       return result.effectiveModel
     } catch (ModelBuildingException e) {
-      logger.error("${e.getMessage()}: ${e.problems}")
+      if (!this.getSuppressModelWarnings()) {
+        logger.error("${e.getMessage()}: ${e.problems}")
+      } else {
+        logger.trace("${e.getMessage()}: ${e.problems}")
+      }
     }
   }
 
