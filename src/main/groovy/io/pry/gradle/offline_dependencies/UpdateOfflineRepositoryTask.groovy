@@ -8,15 +8,15 @@ import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.path
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.path.DefaultUrlNormalizer
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.validation.DefaultModelValidator
 import org.gradle.api.DefaultTask
+import org.gradle.api.UnknownDomainObjectException
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.artifacts.UnknownConfigurationException
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFiles
-import org.gradle.api.tasks.OutputFiles
 import org.gradle.api.tasks.TaskAction
 import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
 import org.gradle.ivy.IvyDescriptorArtifact
@@ -120,6 +120,23 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
     for (configuration in configurations) {
       for (dependency in configuration.allDependencies) {
         if (dependency instanceof ExternalModuleDependency) {
+
+          // if the dependency version is not specified,
+          // try to look it up with the nebula dependency version recommender.
+          //
+          // see: https://github.com/nebula-plugins/nebula-dependency-recommender-plugin
+          if (dependency.version == null) {
+            try {
+              def recommendedVersion = project.getExtensions().getByName('dependencyRecommendations')
+                      .getRecommendedVersion(dependency.group, dependency.name)
+              dependency = new DefaultExternalModuleDependency(dependency.group, dependency.name, recommendedVersion)
+            } catch (UnknownDomainObjectException e) {
+              logger.trace("'dependencyRecommendations' extension is not present")
+              throw new IllegalStateException(String.format(
+                      "Unknown version for dependency '%s:%s' and no version recommender is present",
+                      dependency.group, dependency.name), e)
+            }
+          }
 
           // create a detached configuration for each dependency to get all declared versions of a dependency.
           // resolution would fetch only the newest otherwise.
