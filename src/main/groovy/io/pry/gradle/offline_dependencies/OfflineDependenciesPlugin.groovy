@@ -28,6 +28,8 @@ class OfflineDependenciesPlugin implements Plugin<Project> {
     project.logger.info("Offline dependencies root configured at '${project.ext.offlineRepositoryRoot}'")
 
     project.task('updateOfflineRepository', type: UpdateOfflineRepositoryTask) {
+      group = "Build Setup"
+      description = "Update the offline repository (${project.ext.offlineRepositoryRoot}) with all of this project's current dependencies."
       conventionMapping.root = { "${project.offlineRepositoryRoot}" }
       conventionMapping.configurationNames = { extension.configurations }
       conventionMapping.buildscriptConfigurationNames = { extension.buildScriptConfigurations }
