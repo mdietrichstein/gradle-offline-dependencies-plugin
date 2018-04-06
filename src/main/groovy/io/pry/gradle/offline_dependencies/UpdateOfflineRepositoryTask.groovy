@@ -14,6 +14,8 @@ import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.artifacts.UnknownConfigurationException
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.result.ComponentArtifactsResult;
+import org.gradle.api.artifacts.result.UnresolvedArtifactResult;
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFiles
@@ -27,6 +29,7 @@ import org.gradle.language.java.artifact.JavadocArtifact
 import org.gradle.maven.MavenModule
 import org.gradle.maven.MavenPomArtifact
 import org.gradle.util.GFileUtils
+import java.util.Set;
 
 import static io.pry.gradle.offline_dependencies.Utils.addToMultimap
 
@@ -36,6 +39,8 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
 
   @Input
   GString root
+  @Input
+  GString ivyRoot
   @Input
   Set<String> configurationNames
   @Input
@@ -50,6 +55,8 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
   boolean includeIvyXmls
   @Input
   boolean includeBuildscriptDependencies
+  
+  private Set<ModuleComponentIdentifier> ivyComponentIds = [] as Set
 
   @TaskAction
   void run() {
@@ -179,9 +186,21 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
       collectPoms(componentIds, repositoryFiles)
     }
 
+    def ivyComponents = [] as Set
+    //If we need to keep track of ivy stuff separately keep track of what the ivy dependencies are
+    if (!root.equals(ivyRoot) || this.getIncludeIvyXmls()) {
+      def ivyArtifacts = project.dependencies.createArtifactResolutionQuery()
+        .forComponents(componentIds)
+        .withArtifacts(IvyModule, IvyDescriptorArtifact)
+        .execute()
+      ivyComponents = ivyArtifacts.resolvedComponents
+
+      ivyComponentIds = ivyComponents.collect { it.getId() } as Set
+    }
+
     // collect ivy xml files
-    if (this.getIncludeIvyXmls()) {
-      collectIvyXmls(componentIds, repositoryFiles)
+    if (this.getIncludeIvyXmls() && !ivyComponents.isEmpty()) {
+      collectIvyXmls(componentIds, repositoryFiles, ivyComponents)
     }
 
     return repositoryFiles
@@ -200,7 +219,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
 
     for (component in mavenArtifacts.resolvedComponents) {
       def poms = component.getArtifacts(MavenPomArtifact)
-      if (poms?.empty) {
+      if (poms?.empty || poms.first() instanceof UnresolvedArtifactResult) {
         continue
       }
 
@@ -259,15 +278,10 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
     }
   }
 
-  private void collectIvyXmls(Set<ComponentIdentifier> componentIds, Map<ComponentIdentifier, Set<File>> repositoryFiles) {
+  private void collectIvyXmls(Set<ComponentIdentifier> componentIds, Map<ComponentIdentifier, Set<File>> repositoryFiles, Set<ComponentArtifactsResult> ivyComponents) {
     logger.trace("Collecting ivy xml files")
 
-    def ivyArtifacts = project.dependencies.createArtifactResolutionQuery()
-        .forComponents(componentIds)
-        .withArtifacts(IvyModule, IvyDescriptorArtifact)
-        .execute()
-
-    for (component in ivyArtifacts.resolvedComponents) {
+    for (component in ivyComponents) {
       def ivyXmls = component.getArtifacts(IvyDescriptorArtifact)
 
       if (ivyXmls?.empty) {
@@ -302,7 +316,8 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
 
   // Return the offline-repository target directory for the given component (naming follows maven conventions)
   protected File moduleDirectory(ModuleComponentIdentifier ci) {
-    new File("${getRoot()}".toString(), "${ci.group.tokenize(".").join("/")}/${ci.module}/${ci.version}")
+    new File("${ivyComponentIds.contains(ci) ? getIvyRoot() : getRoot()}".toString(), "${ci.group.tokenize(".").join("/")}/${ci.module}/${ci.version}")
   }
+  
 }
 

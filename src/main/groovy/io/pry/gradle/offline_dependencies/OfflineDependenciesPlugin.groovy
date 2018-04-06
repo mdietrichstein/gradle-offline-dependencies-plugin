@@ -27,8 +27,15 @@ class OfflineDependenciesPlugin implements Plugin<Project> {
 
     project.logger.info("Offline dependencies root configured at '${project.ext.offlineRepositoryRoot}'")
 
+    if (project.hasProperty("offlineIvyRepositoryRoot")) {
+      project.logger.info("Offline ivy dependencies root configured at '${project.ext.offlineIvyRepositoryRoot}'")
+    } else {
+      project.ext.offlineIvyRepositoryRoot = project.offlineRepositoryRoot
+    }
+
     project.task('updateOfflineRepository', type: UpdateOfflineRepositoryTask) {
       conventionMapping.root = { "${project.offlineRepositoryRoot}" }
+      conventionMapping.ivyRoot = { "${project.offlineIvyRepositoryRoot}" }
       conventionMapping.configurationNames = { extension.configurations }
       conventionMapping.buildscriptConfigurationNames = { extension.buildScriptConfigurations }
       conventionMapping.includeSources = { extension.includeSources }

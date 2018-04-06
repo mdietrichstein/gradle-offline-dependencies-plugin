@@ -52,6 +52,22 @@ offlineDependencies {
 }
 ```
 
+You can additionally override ```offlineIvyRepositoryRoot``` to separate Ivy dependencies from Maven dependencies:
+```gradle
+repositories {
+  ivy {
+    url offlineIvyRepositoryRoot
+    layout 'pattern', {
+      artifact '[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]'
+      ivy '[organisation]/[module]/[revision]/ivy-[revision].xml'
+      m2compatible = true
+    }
+  }
+}
+```
+This may be necessary if you use both maven and ivy repositories in the same build and you use custom ivy configurations.
+
+
 ## Tasks
 
 Currently the plugin only exposes a single task:
@@ -107,7 +123,7 @@ buildscript {
 }
 ```
 
-Just make sure that the `offlineRepositoryRoot` repository is first in the list.
+Just make sure that the `offlineRepositoryRoot` (and `offlineIvyRepositoryRoot`, if used) repository is before the remote repositories.
 
 ## Example build.gradle
 
