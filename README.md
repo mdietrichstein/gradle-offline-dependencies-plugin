@@ -72,6 +72,7 @@ The offline-dependencies Plugin defines the following properties which may be co
 * ```includeBuildscriptDependencies```: Download dependencies defined in the ```buildscript``` section (default is ```true```). Buildscript dependencies need special handling. See __Handling Buildscript Dependencies__ below for details
 * ```configurations```: Project confgurations for which dependency artifacts should be downloaded (defaults to all project configurations)
 * ```buildScriptConfigurations```: Buildscript configurations for which dependency artifacts should be downloaded (defaults to all  buildscript configurations)
+* ```resolveMultipleVersions```: Should multiple versions of the same dependencies be resolved? (default is ```true```) - set to ```false``` if you are using customized dependency resolution (e.g. [DependencyLock](https://github.com/nebula-plugins/gradle-dependency-lock-plugin))
 
 ## Handling Buildscript Dependencies
 
