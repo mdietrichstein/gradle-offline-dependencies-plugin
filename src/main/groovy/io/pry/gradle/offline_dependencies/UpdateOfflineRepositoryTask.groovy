@@ -14,6 +14,7 @@ import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.artifacts.UnknownConfigurationException
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.result.UnresolvedArtifactResult
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFiles
@@ -204,7 +205,14 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
         continue
       }
 
-      def pomFile = poms.first().file as File
+      def pomArtifact = poms.first()
+
+      if (pomArtifact instanceof UnresolvedArtifactResult) {
+        logger.error("Resolver was unable to resolve artifact '{}'", pomArtifact.id, pomArtifact.getFailure())
+        continue
+      }
+      
+      def pomFile = pomArtifact.file as File
       resolvePom(pomModelResolver, pomFile)
 
       logger.trace("Adding pom for component'{}' (location '{}')", component.id, pomFile)
@@ -274,7 +282,14 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
         continue
       }
 
-      def ivyXml = ivyXmls.first().file as File
+      def ivyXmlArtifact = ivyXmls.first()
+
+      if (ivyXmlArtifact instanceof UnresolvedArtifactResult) {
+        logger.error("Resolver was unable to resolve artifact '{}'", ivyXmlArtifact.id, ivyXmlArtifact.getFailure())
+        continue
+      }
+
+      def ivyXml = ivyXmlArtifact.file as File
       logger.trace("Adding ivy artifact for component'{}' (location '{}')", component.id, ivyXml)
       addToMultimap(repositoryFiles, component.id, ivyXml)
     }

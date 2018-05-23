@@ -7,6 +7,7 @@ import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.buil
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.resolution.InvalidRepositoryException
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.resolution.ModelResolver
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.resolution.UnresolvableModelException
+import org.gradle.api.artifacts.result.UnresolvedArtifactResult
 import org.gradle.api.Project
 import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
 import org.gradle.maven.MavenModule
@@ -44,7 +45,14 @@ class PomDependencyModelResolver implements ModelResolver {
         return null
       }
 
-      def pomFile = poms.first().file as File
+      def pomArtifact = poms.first()
+
+      if (pomArtifact instanceof UnresolvedArtifactResult) {
+        logger.error("Resolver was unable to resolve artifact '{}'", pomArtifact.id, pomArtifact.getFailure())
+        return null
+      }
+
+      def pomFile = pomArtifact.file as File
 
       def componentId = new DefaultModuleComponentIdentifier(groupId, artifactId, version)
       componentCache[componentId] = pomFile
