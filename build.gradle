@@ -90,7 +90,7 @@ pluginBundle {
   tags = ['offline', 'buildscript-dependency', 'buildscript-configurations', 'jar', 'pom', 'reproducible', 'offline-dependencies']
 
   plugins {
-    greetingsPlugin {
+    offlineDependenciesPlugin {
       id = project.group
       displayName = 'Gradle Offline Dependencies Plugin'
     }
