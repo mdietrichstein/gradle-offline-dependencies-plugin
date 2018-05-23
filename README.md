@@ -105,6 +105,21 @@ buildscript {
     classpath 'some.other.buildscript:dependency:1.0.0'
   }
 }
+
+offlineDependencies {
+  repositories {
+    // You'll have to add your buildscript repositories here too
+    maven {
+      url 'https://plugins.gradle.org/m2/'
+    }
+  }
+
+  includeSources = true
+  includeJavadocs = true
+  includePoms = true
+  includeIvyXmls = true
+  includeBuildscriptDependencies = true
+}
 ```
 
 Just make sure that the `offlineRepositoryRoot` repository is first in the list.
