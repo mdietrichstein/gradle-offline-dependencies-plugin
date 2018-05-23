@@ -1,4 +1,4 @@
-libs/offline-dependencies-plugin-thirdparty-repackaged-all-*.jar
+libs/
 gradle.properties
 .gradle
 build/
