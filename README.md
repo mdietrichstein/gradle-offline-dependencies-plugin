@@ -111,6 +111,8 @@ offlineDependencies {
     // You'll have to add your buildscript repositories here too
     maven {
       url 'https://plugins.gradle.org/m2/'
+      mavenCentral()
+      jcenter()
     }
   }
 
