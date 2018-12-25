@@ -15,6 +15,7 @@ import org.gradle.api.artifacts.UnknownConfigurationException
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.result.UnresolvedArtifactResult
+import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFiles
@@ -132,9 +133,9 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
 
           cfg.resolvedConfiguration.resolvedArtifacts.forEach({ artifact ->
             def componentId =
-                new DefaultModuleComponentIdentifier(
+                new DefaultModuleComponentIdentifier(new DefaultModuleIdentifier(
                     artifact.moduleVersion.id.group,
-                    artifact.moduleVersion.id.name,
+                    artifact.moduleVersion.id.name),
                     artifact.moduleVersion.id.version
                 )
 
