@@ -3,6 +3,7 @@ package io.pry.gradle.offline_dependencies
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.RepositoryHandler
+import org.gradle.api.internal.CollectionCallbackActionDecorator
 import org.gradle.api.internal.artifacts.BaseRepositoryFactory
 import org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler
 import org.gradle.internal.reflect.Instantiator
@@ -20,7 +21,8 @@ class OfflineDependenciesPlugin implements Plugin<Project> {
 
     RepositoryHandler repositoryHandler = new DefaultRepositoryHandler(
         project.services.get(BaseRepositoryFactory.class) as BaseRepositoryFactory,
-        project.services.get(Instantiator.class) as Instantiator
+        project.services.get(Instantiator.class) as Instantiator,
+        project.services.get(CollectionCallbackActionDecorator.class) as CollectionCallbackActionDecorator
     )
 
     def extension = project.extensions.create(EXTENSION_NAME, OfflineDependenciesExtension, repositoryHandler)
