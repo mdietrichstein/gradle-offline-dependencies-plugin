@@ -1,3 +1,4 @@
+out/
 libs/
 gradle.properties
 .gradle
