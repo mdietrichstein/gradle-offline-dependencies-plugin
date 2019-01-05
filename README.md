@@ -14,7 +14,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath 'gradle.plugin.io.pry.gradle.offline_dependencies:gradle-offline-dependencies-plugin:0.4'
+    classpath 'gradle.plugin.io.pry.gradle.offline_dependencies:gradle-offline-dependencies-plugin:0.5.0'
   }
 }
 
@@ -25,7 +25,7 @@ For Gradle >= 2.1:
 
 ```
 plugins {
-  id 'io.pry.gradle.offline_dependencies' version '0.4'
+  id 'io.pry.gradle.offline_dependencies' version '0.5.0'
 }
 ```
 
@@ -101,7 +101,7 @@ buildscript {
   }
 
   dependencies {
-    classpath 'gradle.plugin.io.pry.gradle.offline_dependencies:gradle-offline-dependencies-plugin:0.4'
+    classpath 'gradle.plugin.io.pry.gradle.offline_dependencies:gradle-offline-dependencies-plugin:0.5.0'
     classpath 'some.other.buildscript:dependency:1.0.0'
   }
 }
@@ -139,7 +139,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath "gradle.plugin.io.pry.gradle.offline_dependencies:gradle-offline-dependencies-plugin:0.4"
+    classpath "gradle.plugin.io.pry.gradle.offline_dependencies:gradle-offline-dependencies-plugin:0.5.0"
   }
 }
 

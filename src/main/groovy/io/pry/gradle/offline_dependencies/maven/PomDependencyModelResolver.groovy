@@ -1,9 +1,10 @@
 package io.pry.gradle.offline_dependencies.maven
 
+import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.Dependency
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.Parent
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.Repository
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.building.FileModelSource
-import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.building.ModelSource
+import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.building.ModelSource2
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.resolution.InvalidRepositoryException
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.resolution.ModelResolver
 import io.pry.gradle.offline_dependencies.repackaged.org.apache.maven.model.resolution.UnresolvableModelException
@@ -26,12 +27,17 @@ class PomDependencyModelResolver implements ModelResolver {
     }
 
     @Override
-    ModelSource resolveModel(Parent parent) throws UnresolvableModelException {
+    ModelSource2 resolveModel(Parent parent) throws UnresolvableModelException {
         return resolveModel(parent.groupId, parent.artifactId, parent.version)
     }
 
     @Override
-    ModelSource resolveModel(String groupId, String artifactId, String version) throws UnresolvableModelException {
+    ModelSource2 resolveModel(Dependency dependency) throws UnresolvableModelException {
+        return resolveModel(dependency.groupId, dependency.artifactId, dependency.version)
+    }
+
+    @Override
+    ModelSource2 resolveModel(String groupId, String artifactId, String version) throws UnresolvableModelException {
         def id = "$groupId:$artifactId:$version".toString()
 
         if (!pomCache.containsKey(id)) {
