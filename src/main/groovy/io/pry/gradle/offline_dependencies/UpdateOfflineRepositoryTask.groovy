@@ -39,8 +39,8 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
     @Input
     GString root
     @Input
-  GString ivyRoot
-  @Input
+    GString ivyRoot
+    @Input
     Set<String> configurationNames
     @Input
     Set<String> buildscriptConfigurationNames
@@ -55,7 +55,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
     @Input
     boolean includeBuildscriptDependencies
   
-  private Set<ModuleComponentIdentifier> ivyComponentIds = [] as Set
+    private Set<ModuleComponentIdentifier> ivyComponentIds = [] as Set
 
     @TaskAction
     void run() {
@@ -180,17 +180,17 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
             collectPoms(componentIds, repositoryFiles)
         }
 
-    def ivyComponents = [] as Set
-    //If we need to keep track of ivy stuff separately keep track of what the ivy dependencies are
-    if (!root.equals(ivyRoot) || this.getIncludeIvyXmls()) {
-      def ivyArtifacts = project.dependencies.createArtifactResolutionQuery()
-        .forComponents(componentIds)
-        .withArtifacts(IvyModule, IvyDescriptorArtifact)
-        .execute()
-      ivyComponents = ivyArtifacts.resolvedComponents
+        def ivyComponents = [] as Set
+        //If we need to keep track of ivy stuff separately keep track of what the ivy dependencies are
+        if (!root.equals(ivyRoot) || this.getIncludeIvyXmls()) {
+            def ivyArtifacts = project.dependencies.createArtifactResolutionQuery()
+                                                   .forComponents(componentIds)
+                                                   .withArtifacts(IvyModule, IvyDescriptorArtifact)
+                                                   .execute()
+            ivyComponents = ivyArtifacts.resolvedComponents
 
-      ivyComponentIds = ivyComponents.collect { it.getId() } as Set
-    }
+            ivyComponentIds = ivyComponents.collect { it.getId() } as Set
+        }
 
         // collect ivy xml files
         if (this.getIncludeIvyXmls() && !ivyComponents.isEmpty()) {
@@ -324,7 +324,7 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
 
     // Return the offline-repository target directory for the given component (naming follows maven conventions)
     protected File moduleDirectory(ModuleComponentIdentifier ci) {
-      new File("${ivyComponentIds.contains(ci) ? getIvyRoot() : getRoot()}".toString(), "${ci.group.tokenize(".").join("/")}/${ci.module}/${ci.version}")
+        new File("${ivyComponentIds.contains(ci) ? getIvyRoot() : getRoot()}".toString(), "${ci.group.tokenize(".").join("/")}/${ci.module}/${ci.version}")
     }
   
 }
