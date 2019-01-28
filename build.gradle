@@ -1,43 +1,43 @@
 buildscript {
-  repositories {
-    maven {
-      url "https://plugins.gradle.org/m2/"
-    }
-  }
-  dependencies {
-    classpath "com.gradle.publish:plugin-publish-plugin:0.9.9"
-  }
+	repositories {
+		maven {
+			url "https://plugins.gradle.org/m2/"
+		}
+	}
+	dependencies {
+		classpath "com.gradle.publish:plugin-publish-plugin:0.10.0"
+	}
 }
 
 apply plugin: "com.gradle.plugin-publish"
 apply plugin: 'groovy'
 
 group = 'io.pry.gradle.offline_dependencies'
-version = '0.3'
+version = '0.5.0'
 description = 'Store project dependencies alongside your code for reproducible offline builds'
 
 repositories {
-  mavenCentral()
-  maven { url 'https://repo.gradle.org/gradle/libs-releases' }
+	mavenCentral()
+	maven { url 'https://repo.gradle.org/gradle/libs-releases' }
 }
 
 ext {
-  mavenVersion = '3.3.9'
-  jarjarVersion = '1.2.1'
+	mavenVersion = '3.6.0'
+	jarjarVersion = '1.2.1'
 
-  thirdpartyLibsDir = "$project.rootDir/libs/"
+	thirdpartyLibsDir = "$project.rootDir/libs/"
 }
 
 configurations {
-  thirdparty
-  jarjar
+	thirdparty
+	jarjar
 }
 
 dependencies {
-	compile gradleApi()
-	compile localGroovy()
+	implementation gradleApi()
+	implementation localGroovy()
 
-	compile fileTree(thirdpartyLibsDir)
+	implementation fileTree(thirdpartyLibsDir)
 
 	// thirdparty dependencies and repackaging
 	jarjar "org.gradle.jarjar:jarjar:$jarjarVersion"
@@ -45,9 +45,9 @@ dependencies {
 }
 
 task repackageDependencies(type: Jar) {
-	baseName = 'offline-dependencies-plugin-thirdparty-repackaged-all'
+	archivesBaseName = 'offline-dependencies-plugin-thirdparty-repackaged-all'
 	version = project.version
-	destinationDir = new File(thirdpartyLibsDir)
+	destinationDirectory = new File(thirdpartyLibsDir)
 
 	doLast {
 		project.ant {
@@ -75,24 +75,24 @@ jar {
 
 	manifest {
 		attributes(
-			'Created-By': "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})".toString(),
-			'Implementation-Title': project.description,
-			'Implementation-Version': project.version,
-			'Implementation-Vendor': 'Marc Dietrichstein'
+				'Created-By': "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})".toString(),
+				'Implementation-Title': project.description,
+				'Implementation-Version': project.version,
+				'Implementation-Vendor': 'Marc Dietrichstein'
 		)
 	}
 }
 
 pluginBundle {
-  website = 'https://github.com/mdietrichstein/gradle-offline-dependencies-plugin'
-  vcsUrl = 'https://github.com/mdietrichstein/gradle-offline-dependencies-plugin'
-  description = project.description
-  tags = ['offline', 'buildscript-dependency', 'buildscript-configurations', 'jar', 'pom', 'reproducible', 'offline-dependencies']
+	website = 'https://github.com/mdietrichstein/gradle-offline-dependencies-plugin'
+	vcsUrl = 'https://github.com/mdietrichstein/gradle-offline-dependencies-plugin'
+	description = project.description
+	tags = ['offline', 'buildscript-dependency', 'buildscript-configurations', 'jar', 'pom', 'reproducible', 'offline-dependencies']
 
-  plugins {
-    greetingsPlugin {
-      id = project.group
-      displayName = 'Gradle Offline Dependencies Plugin'
-    }
-  }
+	plugins {
+		offlineDependenciesPlugin {
+			id = project.group
+			displayName = 'Gradle Offline Dependencies Plugin'
+		}
+	}
 }
