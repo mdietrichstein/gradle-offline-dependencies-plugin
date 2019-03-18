@@ -15,7 +15,9 @@ import org.gradle.api.artifacts.UnknownConfigurationException
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.result.UnresolvedArtifactResult
+import org.gradle.api.attributes.HasConfigurableAttributes
 import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
+import org.gradle.api.internal.artifacts.dsl.dependencies.PlatformSupport
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
@@ -118,24 +120,17 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
         Map<ModuleComponentIdentifier, Set<File>> repositoryFiles = [:]
 
         for (configuration in configurations) {
+
+            def platformDeps = configuration.allDependencies.
+                    findAll { it instanceof HasConfigurableAttributes && PlatformSupport.isTargettingPlatform(it) }
+
             for (dependency in configuration.allDependencies) {
                 if (dependency instanceof ExternalModuleDependency) {
+                    Map<ModuleComponentIdentifier, Set<File>> depFilesMultiMap = collectDependencyFiles(dependency,
+                            platformDeps)
 
-                    // create a detached configuration for each dependency to get all declared versions of a dependency.
-                    // resolution would fetch only the newest otherwise.
-                    //
-                    // see:
-                    // * http://stackoverflow.com/questions/29374885/multiple-version-of-dependencies-in-gradle
-                    // * https://discuss.gradle.org/t/how-to-get-multiple-versions-of-the-same-library/7400
-                    def cfg = project.configurations.detachedConfiguration([dependency].toArray(EMPTY_DEPENDENCIES_ARRAY))
-
-                    cfg.resolvedConfiguration.resolvedArtifacts.forEach({ artifact ->
-                        def componentId = DefaultModuleComponentIdentifier.newId(DefaultModuleIdentifier.newId(artifact.moduleVersion.id.group, artifact.moduleVersion.id.name), artifact.moduleVersion.id.version)
-
-                        componentIds.add(componentId)
-                        logger.trace("Adding artifact for component'{}' (location '{}')", componentId, artifact.file)
-                        addToMultimap(repositoryFiles, componentId, artifact.file)
-                    });
+                    componentIds.addAll(depFilesMultiMap.keySet())
+                    addToMultimap(repositoryFiles, depFilesMultiMap)
                 }
             }
         }
@@ -178,6 +173,62 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
         if (this.getIncludeIvyXmls()) {
             collectIvyXmls(componentIds, repositoryFiles)
         }
+
+        return repositoryFiles
+    }
+
+    private Map<ModuleComponentIdentifier, Set<File>> collectDependencyFiles(ExternalModuleDependency dependency,
+                                        Set<Dependency> platformDeps) {
+
+        boolean isPlatformDependency = PlatformSupport.isTargettingPlatform(dependency)
+        Map<ModuleComponentIdentifier, Set<File>> retVal
+
+        if (isPlatformDependency) {
+            retVal = collectPlatformDependencyFiles(dependency)
+
+        } else {
+            retVal = collectRegularDependencyFiles(dependency, platformDeps)
+        }
+
+        return retVal
+    }
+
+    private Map<ModuleComponentIdentifier, Set<File>> collectRegularDependencyFiles(ExternalModuleDependency dependency,
+                                               Set<Dependency> platformDeps) {
+        def dependencies = [dependency]
+        Map<ModuleComponentIdentifier, Set<File>> repositoryFiles = [:]
+
+        if (platformDeps?.size() > 0 && dependency.version == null) {
+            // Add platform dependencies for resolution in order to support Maven BOMs
+            dependencies = ([dependency] + platformDeps)
+        }
+
+        // create a detached configuration for each dependency to get all declared versions of a dependency.
+        // resolution would fetch only the newest otherwise.
+        //
+        // see:
+        // * http://stackoverflow.com/questions/29374885/multiple-version-of-dependencies-in-gradle
+        // * https://discuss.gradle.org/t/how-to-get-multiple-versions-of-the-same-library/7400
+        def cfg = project.configurations.detachedConfiguration(dependencies.toArray(EMPTY_DEPENDENCIES_ARRAY))
+
+        cfg.resolvedConfiguration.resolvedArtifacts.forEach({ artifact ->
+            def componentId = DefaultModuleComponentIdentifier.newId(DefaultModuleIdentifier.newId(artifact.moduleVersion.id.group, artifact.moduleVersion.id.name), artifact.moduleVersion.id.version)
+
+            logger.trace("Adding artifact for component'{}' (location '{}')", componentId, artifact.file)
+            addToMultimap(repositoryFiles, componentId, artifact.file)
+        })
+
+        return repositoryFiles
+    }
+
+    private Map<ModuleComponentIdentifier, Set<File>> collectPlatformDependencyFiles(ExternalModuleDependency dependency) {
+        Map<ModuleComponentIdentifier, Set<File>> repositoryFiles = [:]
+        def unversionedModuleId = DefaultModuleIdentifier.newId(dependency.group, dependency.name)
+        def platformDepId = DefaultModuleComponentIdentifier.newId(
+                unversionedModuleId,
+                dependency.version)
+
+        collectPoms([platformDepId] as Set<ComponentIdentifier>, repositoryFiles)
 
         return repositoryFiles
     }
