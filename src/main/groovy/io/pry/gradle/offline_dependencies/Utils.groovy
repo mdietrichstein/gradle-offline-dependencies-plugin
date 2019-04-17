@@ -7,4 +7,12 @@ public final class Utils {
         }
         map.get(key).add(value)
     }
+
+    public static <K, V> void addToMultimap(Map<K, Set<V>> targetMap, Map<K, Set<V>> sourceMap) {
+        sourceMap.each { entry ->
+            entry.value.each { targetMapInnerValue ->
+                addToMultimap(targetMap, entry.key, targetMapInnerValue)
+            }
+        }
+    }
 }
