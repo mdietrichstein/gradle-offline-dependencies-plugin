@@ -50,6 +50,8 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
     boolean includeIvyXmls
     @Input
     boolean includeBuildscriptDependencies
+    @Input
+    boolean resolveMultipleVersions
 
     @TaskAction
     void run() {
@@ -118,24 +120,36 @@ class UpdateOfflineRepositoryTask extends DefaultTask {
         Map<ModuleComponentIdentifier, Set<File>> repositoryFiles = [:]
 
         for (configuration in configurations) {
+            if (!configuration.canBeResolved) {
+                continue
+            }
             for (dependency in configuration.allDependencies) {
                 if (dependency instanceof ExternalModuleDependency) {
 
-                    // create a detached configuration for each dependency to get all declared versions of a dependency.
-                    // resolution would fetch only the newest otherwise.
-                    //
-                    // see:
-                    // * http://stackoverflow.com/questions/29374885/multiple-version-of-dependencies-in-gradle
-                    // * https://discuss.gradle.org/t/how-to-get-multiple-versions-of-the-same-library/7400
-                    def cfg = project.configurations.detachedConfiguration([dependency].toArray(EMPTY_DEPENDENCIES_ARRAY))
+                    def cfg = configuration
+                        if (this.getResolveMultipleVersions()) {
+                        // create a detached configuration for each dependency to get all declared versions of a dependency.
+                        // resolution would fetch only the newest otherwise.
+                        //
+                        // see:
+                        // * http://stackoverflow.com/questions/29374885/multiple-version-of-dependencies-in-gradle
+                        // * https://discuss.gradle.org/t/how-to-get-multiple-versions-of-the-same-library/7400
+                        cfg = project.configurations.detachedConfiguration([dependency].toArray(EMPTY_DEPENDENCIES_ARRAY))
+                    }
 
-                    cfg.resolvedConfiguration.resolvedArtifacts.forEach({ artifact ->
-                        def componentId = DefaultModuleComponentIdentifier.newId(DefaultModuleIdentifier.newId(artifact.moduleVersion.id.group, artifact.moduleVersion.id.name), artifact.moduleVersion.id.version)
+                    //Find the resolved dependencies for the current dependency
+                    def resolvedDeps = cfg.resolvedConfiguration.getFirstLevelModuleDependencies({
+                        it.group.equals(dependency.group) && it.name.equals(dependency.name)
+                    })
 
-                        componentIds.add(componentId)
-                        logger.trace("Adding artifact for component'{}' (location '{}')", componentId, artifact.file)
-                        addToMultimap(repositoryFiles, componentId, artifact.file)
-                    });
+                    resolvedDeps.each {
+                        it.allModuleArtifacts.forEach({ artifact ->
+                            def componentId = DefaultModuleComponentIdentifier.newId(DefaultModuleIdentifier.newId(artifact.moduleVersion.id.group, artifact.moduleVersion.id.name), artifact.moduleVersion.id.version)
+                            componentIds.add(componentId)
+                            logger.trace("Adding artifact for component'{}' (location '{}')", componentId, artifact.file)
+                            addToMultimap(repositoryFiles, componentId, artifact.file)
+                        })
+                    }
                 }
             }
         }
